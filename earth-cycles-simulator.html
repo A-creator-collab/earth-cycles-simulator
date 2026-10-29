@@ -1,0 +1,245 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Earth's Cycles Simulator</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;600&family=IBM+Plex+Mono&display=swap" rel="stylesheet">
+<style>[hidden]{display:none!important}
+:root{--bg:#f5f3ee;--panel:#fff;--ink:#1d2421;--muted:#5f6b66;--line:#e3e0d8;--good:#2f9e6b;--warn:#d99a1e;--bad:#d2483f;--accent:#1f6f8b;--sky:#dcecf3;--sea:#4f97b5;--land:#8fb67a;--rock:#8b8f87;--soil:#a98a63;--gw:#6aa9c9}
+[data-theme=dark]{--bg:#141a18;--panel:#1d2522;--ink:#e8ece9;--muted:#9aa8a2;--line:#30403b;--sky:#1d2f3a;--sea:#256079;--land:#4b7040;--rock:#5d625b;--soil:#6d563b;--gw:#2f6f93}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.45 "IBM Plex Sans",system-ui,sans-serif}
+header{padding:18px 20px 6px;display:flex;flex-wrap:wrap;gap:8px 16px;align-items:end;justify-content:space-between}
+h1{font-size:22px;margin:0}header p{margin:2px 0 0;color:var(--muted);font-size:14px}
+h3{margin:0 0 8px;font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.presets{display:flex;flex-wrap:wrap;gap:6px}
+button,select{font:inherit;font-size:13px;border:1px solid var(--line);background:var(--panel);color:var(--ink);border-radius:999px;padding:5px 12px;cursor:pointer}
+button:hover{border-color:var(--accent)}button[aria-selected=true],button.on{background:var(--accent);color:#fff;border-color:var(--accent)}
+button:focus-visible,input:focus-visible,[tabindex]:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+nav{padding:6px 20px}.wrap{display:grid;grid-template-columns:320px 1fr;gap:14px;padding:10px 20px;align-items:start}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px;margin-bottom:14px}
+.ctl{margin:8px 0}.ctl label{display:flex;justify-content:space-between;font-size:13px}.ctl b{font-family:"IBM Plex Mono",monospace;font-weight:400}
+input[type=range]{width:100%;accent-color:var(--accent)}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+svg{width:100%;height:auto;display:block;border-radius:12px;border:1px solid var(--line);background:var(--panel)}
+.hit{fill:transparent;cursor:help}svg text{font-size:12px;fill:var(--muted);pointer-events:none}
+.m{margin:8px 0}.m .row{display:flex;justify-content:space-between;font-size:13px}.m .row b{font-family:"IBM Plex Mono",monospace;font-weight:400}
+.bar{position:relative;height:9px;background:var(--line);border-radius:5px}.bar i{display:block;height:100%;border-radius:5px;background:var(--accent)}
+.bar u{position:absolute;top:-3px;width:2px;height:15px;background:var(--ink);display:none}
+.good i{background:var(--good)}.warn i{background:var(--warn)}.bad i{background:var(--bad)}
+ul.effects{list-style:none;margin:0;padding:0}ul.effects li{padding:7px 0;border-top:1px solid var(--line);font-size:14px}ul.effects li:first-child{border:0}
+.cgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:10px}.cgrid div{border:1px solid var(--line);border-radius:10px;padding:10px;font-size:13px;color:var(--muted)}.cgrid b{color:var(--ink);display:block}
+.limit{font-family:"IBM Plex Mono",monospace;font-size:13px;background:var(--bg);border-radius:8px;padding:8px;margin-top:8px}
+.tag{display:inline-block;font-size:11px;padding:1px 8px;border-radius:99px;color:#fff;background:var(--accent)}
+.stack{display:flex;height:14px;border-radius:7px;overflow:hidden;background:var(--line);margin:6px 0}.stack span{display:block}
+#tip{position:fixed;z-index:9;background:var(--ink);color:var(--bg);padding:6px 10px;border-radius:8px;font-size:12px;display:none;max-width:260px;pointer-events:none}#tip code{font-family:"IBM Plex Mono",monospace;display:block}
+#toast{position:fixed;bottom:16px;left:50%;transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:10px;display:none;max-width:90vw;z-index:9;font-size:14px}
+footer{padding:14px 20px 30px;color:var(--muted);font-size:13px}.full{padding:0 20px 10px}
+.spark{height:60px;border:0}.q{padding:20px}.q button{display:block;margin:6px 0;border-radius:10px;text-align:left}
+@media(max-width:980px){.wrap{grid-template-columns:1fr}.g2{grid-template-columns:1fr}}
+</style></head><body>
+<header><div><h1 id="ttl"></h1><p id="sub"></p></div><div class="presets"><button id="dark">🌙 Dark</button><button id="lnk">Copy link</button><button id="csv">Data CSV</button><button id="sum">Copy summary</button></div></header>
+<nav><div class="presets" role="tablist" id="tabs"></div></nav>
+<div class="wrap" id="main"><div id="left"></div><div><div class="panel" style="padding:0"><svg id="scene" viewBox="0 0 1000 520" role="img" aria-label="Scene"></svg></div>
+<div class="g2"><div class="panel"><h3>Indicators</h3><div id="meters"></div><div id="extra"></div><div class="limit" id="lim"></div><div class="limit" id="eq" style="margin-top:6px"></div></div>
+<div class="panel"><h3>What is happening &amp; why</h3><ul class="effects" id="fx" aria-live="polite"></ul></div></div></div></div>
+<div class="full" id="conc"><div class="panel"><h3>Key concepts</h3><div class="cgrid" id="cg"></div></div></div>
+<div id="quizsec" class="full" hidden><div class="panel q" id="quiz"></div></div>
+<footer>Developed under the guidance of Dr. Chhaya Agarwal &amp; Dr. Dolly Sharma, School of Biotechnology, NIET.</footer>
+<div id="tip"></div><div id="toast"></div>
+<script>
+(()=>{"use strict";
+const NS="http://www.w3.org/2000/svg",$=(s,r=document)=>r.querySelector(s);
+const el=(t,a={},p)=>{const e=document.createElementNS(NS,t);for(const k in a)e.setAttribute(k,a[k]);p&&p.appendChild(e);return e};
+const clamp=(x,a=0,b=1)=>Math.min(b,Math.max(a,x)),lerp=(a,b,t)=>a+(b-a)*t,sig=x=>1/(1+Math.exp(-x));
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const status=(v,d)=>d=="hi"?(v>.66?"bad":v>.4?"warn":"good"):d=="lo"?(v<.25?"bad":v<.45?"warn":"good"):"";
+const pc=v=>Math.round(v*100)+"%";
+/* ===== CALIB: tunable model constants ===== */
+const CALIB={KE:1,KT:.5,KP:1.15,CS:2.2,KO:.02,BUD15:136,BUD2:368};
+const K=CALIB;
+const STR={ttl:"Earth's Cycles Simulator — Water · Nitrogen · Carbon",sub:"Move a slider, watch the planet's plumbing respond. Press Run to see decades unfold.",
+none:"Nothing extreme is happening — the system is near its today-state."};
+/* ===== STATE ===== */
+const PRE={
+water:{Today:{T:15,sun:60,veg:60,imp:20,wind:40,aer:20,wd:30,table:60,ice:20},"Warm world":{T:23,sun:65,veg:50,imp:20,wind:45,aer:20,wd:40,table:50,ice:4},"Ice age":{T:-3,sun:45,veg:30,imp:0,wind:50,aer:20,wd:5,table:60,ice:85},Megacity:{T:17,sun:60,veg:15,imp:85,wind:40,aer:70,wd:75,table:35,ice:20}},
+nitrogen:{Today:{fert:50,leg:30,live:40,nox:30,T:20,m:50,buf:30,pool:50},Organic:{fert:5,leg:70,live:20,nox:10,T:20,m:50,buf:70,pool:30},Overfertilised:{fert:100,leg:10,live:60,nox:60,T:25,m:75,buf:5,pool:85},"Wet tropics":{fert:40,leg:30,live:30,nox:20,T:32,m:90,buf:30,pool:50}},
+carbon:{Today:{emis:40,defo:30,sst:15,co2:420,vol:30,cum:0},"Pre-industrial":{emis:0,defo:0,sst:14,co2:280,vol:30,cum:0},"Business as usual":{emis:80,defo:50,sst:18,co2:560,vol:30,cum:0},"Net zero":{emis:5,defo:5,sst:15,co2:420,vol:30,cum:0}},
+earth:{Today:{emis:40,defo:30,fert:50,wd:30,imp:20},"High emissions":{emis:90,defo:60,fert:60,wd:50,imp:30},"Green transition":{emis:5,defo:5,fert:30,wd:20,imp:20},"Fertiliser boom":{emis:40,defo:30,fert:100,wd:30,imp:20}}};
+const S={water:{...PRE.water.Today},nitrogen:{...PRE.nitrogen.Today},carbon:{...PRE.carbon.Today,sim:0},earth:{...PRE.earth.Today}};
+const SL={
+water:[["T","Mean temperature",-5,40,"°C"],["sun","Solar intensity",5,100,"%"],["veg","Vegetation cover",0,100,"%"],["imp","Impervious / urban surface",0,100,"%"],["wind","Wind",0,100,""],["aer","Pollution / aerosols",0,100,""],["wd","Withdrawal (irrigation & cities)",0,100,""]],
+nitrogen:[["fert","Fertiliser application",0,100,"%"],["leg","Legume / cover-crop share",0,100,"%"],["live","Livestock density",0,100,""],["nox","Industrial NOₓ emissions",0,100,""],["T","Soil temperature",0,40,"°C"],["m","Soil moisture (mid = aerated, wet = anoxic)",0,100,""],["buf","Riparian buffer strips",0,100,"%"]],
+carbon:[["emis","Fossil-fuel emissions",0,100,""],["defo","Deforestation / land use",0,100,""],["sst","Ocean temperature",0,30,"°C"],["co2","Atmospheric CO₂",150,3000," ppm"],["vol","Volcanic / weathering rate",0,100,""]],
+earth:[["emis","Fossil-fuel emissions",0,100,""],["defo","Deforestation",0,100,""],["fert","Fertiliser",0,100,"%"],["wd","Water withdrawal",0,100,""],["imp","Urban surface",0,100,"%"]]};
+const NAME={water:"Water cycle",nitrogen:"Nitrogen cycle",carbon:"Carbon cycle",earth:"Earth system (coupled)",quiz:"Quiz"};
+let tab="water",M=null,BASE={},LK={},act={water:"Today",nitrogen:"Today",carbon:"Today",earth:"Today"},year=0,hist=[[],[],[]],timer=null,speed=1,lastEv=0;
+/* ===== MODELS ===== */
+function mW(s,an=0){
+ const T=s.T+an,sunE=s.sun/100*(1-.3*s.aer/100),veg=s.veg/100,imp=s.imp/100;let hum=.5,ev=0;
+ for(let i=0;i<2;i++){ev=K.KE*sunE*(.4+.6*sig((T-5)/12))*(1-hum);hum=clamp(.35+.5*ev-.003*s.wind,0,.9)}
+ const nuc=.6+.4*s.aer/100,pr=clamp(ev*K.KP*(.6+.8*nuc)*(.7+.6*s.wind/100)*1.4,0,1.2);
+ const sn=pr*clamp((2-T)/4),rain=pr-sn,melt=s.ice/100*clamp(T/12)*.5;
+ const ro=rain*(.15+.8*imp)*(1-.25*veg)+melt*.4,inf=rain*(1-(.15+.8*imp))*(.7+.3*veg);
+ const soil=clamp(.25+1.1*inf+.003*s.table-.45*ev),gf=sig((T-3)/5)*(1-sig((T-33)/2.5)),tr=K.KT*veg*soil*gf,et=clamp(ev*(1-.4*veg)+tr);
+ const flood=clamp(ro*1.8+.4*clamp((s.table-70)/30)),dr=clamp(.9-soil*.8-pr*.5+clamp((T-20)/40)*.4+s.wd/100*.15);
+ const per=clamp((.35+pr*.6+s.table/250)*(1-s.wd/100*.35)),dis=clamp(ro+inf*.3+melt*.6);
+ const L=[["energy",sunE],["water",soil],["warmth",gf],["canopy",veg]].sort((a,b)=>a[1]-b[1])[0];
+ const m=[{l:"Precipitation intensity",v:clamp(pr),t:pc(clamp(pr))},{l:"Evapotranspiration",v:et,t:pc(et)},{l:"Soil moisture",v:soil,t:pc(soil),d:"lo"},{l:"Groundwater / water table",v:s.table/100,t:Math.round(s.table)+"%",d:"lo"},{l:"Snow & ice storage",v:s.ice/100,t:Math.round(s.ice)+"%"},{l:"Flood risk",v:flood,t:pc(flood),d:"hi"},{l:"Drought index",v:dr,t:pc(dr),d:"hi"},{l:"Water per person",v:per,t:pc(per),d:"lo"},{l:"River discharge",v:dis,t:pc(dis)}];
+ const fx=[[dr>.55,"Aridification.","Warm air and thin soil moisture raise evaporative demand faster than rain refills it."],[pr>.45&&T>18,"Monsoon intensification.","Warm air holds ~7 % more vapour per °C (Clausius–Clapeyron), so storms dump more rain."],[imp>.5&&flood>.35,"Flashy urban floods.","Pavement blocks infiltration, so rain reaches rivers in hours, not weeks."],[T>5&&s.ice<15,"Snowpack loss.","Warmth melts ice faster than snowfall replaces it, removing the summer water bank."],[s.wd>55&&s.table<50,"Irrigation drawdown.","Pumping outpaces recharge, so the water table drops."],[s.aer>50,"Dimming vs nuclei.","Aerosols seed more but smaller droplets and block sunlight, cutting evaporation yet delaying rain."]].filter(x=>x[0]);
+ return{m,fx,lim:["Evapotranspiration limited by "+L[0]+" ("+pc(L[1])+")"],eq:"H₂O(l) + 2.45 MJ/kg → H₂O(g) · ET "+pc(et)+" · rate limited by: "+L[0]+" ("+pc(L[1])+")",act:[ev,pr,0],
+ raw:{ev,pr,snow:sn,melt,ro,inf,soil,et,flood,dr,per,dis,sunE,veg:s.veg,imp:s.imp,table:s.table,ice:s.ice,T}};
+}
+function mN(s,an=0){
+ const T=clamp(s.T+an*.8,0,45),fT=clamp(T/28)*(T>38?.6:1),aF=clamp(1-Math.abs(s.m-50)/50),pool=s.pool/100;
+ const sup=clamp(s.fert*.007+s.leg*.006+s.nox*.0008+s.live*.003+pool*.25,0,1.6),nit=clamp(sup*(.2+.8*aF)*(.2+.8*fT),0,1.4);
+ const anx=clamp((s.m-50)/50),den=nit*.5*anx*(.3+.7*fT),n2o=den*(.02+.08*(1-s.m/100))*10;
+ const lch=clamp(nit*(.2+.6*s.m/100)*(1-.8*s.buf/100)*1.2),upN=1-Math.exp(-nit*2.2),up=upN*clamp(s.m/60)*(.3+.7*fT);
+ const nm=lch*90,dz=clamp(lch*.7+(1-s.buf/100)*s.fert/100*.4),pm=clamp(s.nox/100*.7+s.live/100*.2);
+ const L=[["N supply",upN],["water",clamp(s.m/60)],["aeration",aF],["temperature",fT]].sort((a,b)=>a[1]-b[1])[0];
+ const m=[{l:"Reactive N in soil",v:clamp(sup/1.2),t:pc(clamp(sup/1.2)),d:"hi"},{l:"Crop yield index",v:up,t:pc(up),d:"lo"},{l:"Nitrate leaching",v:lch,t:pc(lch),d:"hi"},{l:"N₂O emissions (≈273× CO₂ per kg)",v:clamp(n2o*2.5),t:pc(clamp(n2o*2.5)),d:"hi"},{l:"Eutrophication / dead-zone risk",v:dz,t:pc(dz),d:"hi"},{l:"Drinking-water nitrate (WHO 50 mg/L)",v:clamp(nm/100),t:nm.toFixed(0)+" mg/L",d:"hi"},{l:"NOₓ-driven PM2.5 & ozone",v:pm,t:pc(pm),d:"hi"}];
+ const fx=[[dz>.5,"Eutrophication and hypoxia.","Nitrate feeds algae; their decay strips oxygen from the water below."],[nm>50,"Nitrate above the WHO limit.","Leached nitrate reaches wells; in infants it causes blue-baby syndrome."],[n2o>.25,"N₂O greenhouse gas.","Wet, low-oxygen soil makes denitrifiers release N₂O, ~273× CO₂ per kg."],[s.fert>40,"Haber–Bosch feeds billions.","Synthetic ammonia supplies roughly half the nitrogen in human food."],[s.fert>75&&up>.4,"Diminishing returns.","Yield saturates once crops are fed, so extra fertiliser mostly leaves the field."],[s.buf>50&&lch<.4,"Buffer strips work.","Riparian roots and soil take up nitrate before it enters the stream."]].filter(x=>x[0]);
+ return{m,fx,lim:["Crop uptake limited by "+L[0]+" ("+pc(L[1])+")"],eq:"N₂ + 3H₂ → 2NH₃ · NH₄⁺→NO₃⁻ "+pc(clamp(nit))+" · rate limited by: "+L[0]+" ("+pc(L[1])+")",act:[nit,lch,den*2],dpool:sup-up*.9-lch-den,
+ raw:{sup,nit,den,n2o,lch,up,nm,dz,pm,m:s.m,buf:s.buf,leg:s.leg,fert:s.fert,pool:s.pool}};
+}
+function mC(s,adj=0){
+ const co2=clamp(s.co2,150,3000),r=Math.log(co2/280)/Math.LN2,an=clamp(K.CS*r,-3,12);
+ const gpp=1+.45*Math.tanh(r*.7),land=Math.max(0,3*(1+.5*Math.tanh(r*.7))*(1-.5*s.defo/100)*(1-clamp(an/8)*.6)),
+ pco=300*Math.exp(.02*(s.sst-15)),oc=clamp(K.KO*(co2-pco),-1,6),perm=clamp(.15*Math.exp(.9*Math.max(an,0)),0,5);
+ const em=s.emis*.1,df=s.defo*.015,vol=s.vol*.004,atm=em+df+vol+perm-land-oc-s.vol*.004,ph=8.2-.26*r;
+ const L=[["CO₂",co2/(co2+250)*1.5],["temperature",1-clamp(an/8)],["canopy",1-s.defo/100]].sort((a,b)=>a[1]-b[1])[0];
+ const m=[{l:"Atmospheric CO₂",v:clamp(co2/1200),t:Math.round(co2)+" ppm",d:"hi"},{l:"Temperature anomaly",v:clamp(an/6),t:(an>=0?"+":"")+an.toFixed(1)+" °C",d:"hi"},{l:"Ocean pH",v:clamp((8.3-ph)/.7),t:ph.toFixed(2),d:"hi"},{l:"Land sink",v:clamp(land/6),t:land.toFixed(1)+" GtC/yr",d:"lo"},{l:"Ocean sink",v:clamp(oc/6),t:oc.toFixed(1)+" GtC/yr",d:"lo"},{l:"Permafrost release",v:clamp(perm/3),t:perm.toFixed(2)+" GtC/yr",d:"hi"},{l:"1.5 °C budget used",v:clamp(s.cum/K.BUD15),t:pc(clamp(s.cum/K.BUD15,0,9)),d:"hi"},{l:"2 °C budget used",v:clamp(s.cum/K.BUD2),t:pc(clamp(s.cum/K.BUD2,0,9)),d:"hi"}];
+ const tot=Math.max(.01,em+df),fx=[[ph<8.05,"Ocean acidification.","Dissolved CO₂ forms carbonic acid, lowering carbonate ions that corals and shellfish need."],[atm>1.5,"Sinks are not keeping up.","Emissions exceed what land and ocean absorb, so the residual stays in the air."],[perm>.4,"Permafrost feedback.","Thawed frozen soil is decomposed by microbes, adding CO₂ and CH₄ to warming."],[an>1.5,"Past 1.5 °C.","Warming that high weakens both sinks and raises thaw rates."],[s.defo>60,"Deforestation.","Fewer trees means less photosynthesis and burning releases stored carbon."]].filter(x=>x[0]);
+ return{m,fx,lim:["Photosynthesis limited by "+L[0]+" ("+pc(clamp(L[1]))+")"],eq:"6CO₂ + 6H₂O → C₆H₁₂O₆ + 6O₂ · "+Math.round(co2)+" ppm · rate limited by: "+L[0]+" ("+pc(clamp(L[1]))+")",act:[s.emis/100,clamp(land/4),clamp(oc/4)],
+ stack:[atm,land,oc,tot],dco2:atm/2.12,cumAdd:em+df,an,ph,raw:{co2,an,ph,gpp,land,oc,perm,em,df,atm,cum:s.cum,sst:s.sst,defo:s.defo}};
+}
+function mE(){
+ const e=S.earth,c=mC({...S.carbon,emis:e.emis,defo:e.defo,co2:S.carbon.co2+(e.emis-40)*6+(e.defo-30)*1.5});
+ const N=mN({...PRE.nitrogen.Today,...S.nitrogen,fert:e.fert},c.an),an=c.an+N.raw.n2o*.2;
+ const W=mW({...S.water,wd:e.wd,imp:e.imp},an),cp=[clamp(an/4),clamp((8.2-c.ph)/.5),clamp(N.raw.n2o*.8+.15),clamp(W.raw.ro*1.5),W.raw.dr,N.raw.dz];
+ const m=[{l:"Warming",v:clamp(an/6),t:"+"+an.toFixed(1)+" °C",d:"hi"},{l:"Atmospheric CO₂",v:clamp(c.raw.co2/1200),t:Math.round(c.raw.co2)+" ppm",d:"hi"},{l:"Drought index",...W.m[6]},{l:"Flood risk",...W.m[5]},{l:"Snow & ice",...W.m[4]},{l:"Ocean pH / coral stress",v:cp[1],t:c.ph.toFixed(2),d:"hi"},{l:"Dead-zone risk",...N.m[4]},{l:"Crop yield",...N.m[1]}];
+ const T=["Carbon → Water: warming evaporates more and turns snow to rain","Carbon → Water: lower ocean pH stresses coral and fish","Nitrogen → Carbon: N₂O adds forcing; deposition feeds forests","Water → Nitrogen: heavy rain leaches nitrate","Water → Carbon: drought suppresses photosynthesis","Nitrogen → Water: nitrate runoff drives algal blooms"];
+ return{m,fx:cp.map((v,i)=>[v>.35,T[i].split(": ")[0]+".",T[i].split(": ")[1]+"."]).filter(x=>x[0]),lim:["Strongest link: "+T[cp.indexOf(Math.max(...cp))].split(":")[0]],eq:"Shared temperature: +"+an.toFixed(2)+" °C feeds all three models",act:[cp[0],cp[3],cp[5]],cp,C:c,N,W,raw:{an,co2:c.raw.co2,ph:c.ph,dr:W.raw.dr,flood:W.raw.flood,dz:N.raw.dz,up:N.raw.up}};
+}
+const MODEL={water:()=>mW(S.water),nitrogen:()=>mN(S.nitrogen),carbon:()=>mC(S.carbon),earth:mE};
+/* ===== SCENES ===== */
+const SC={
+water:`<rect width="1000" height="330" style="fill:var(--sky)"/><circle id="sun" cx="90" cy="70" r="36" fill="#f2b84a"/><path style="fill:var(--rock)" d="M0 330L110 190L210 260L330 140L450 330Z"/><path id="snw" fill="#fff" d="M290 165L330 140L372 190L340 178L318 192Z"/>
+<g id="cl"><ellipse cx="250" cy="100" rx="80" ry="26"/><ellipse cx="320" cy="82" rx="60" ry="28"/><ellipse cx="380" cy="102" rx="70" ry="24"/></g>
+<rect y="330" width="640" height="20" style="fill:var(--land)"/><rect y="350" width="640" height="170" style="fill:var(--soil)"/><rect id="gw" x="0" y="440" width="640" height="80" style="fill:var(--gw)"/><line id="wt" x1="0" x2="640" y1="440" y2="440" stroke="#fff" stroke-dasharray="6 4"/>
+<rect x="640" y="300" width="360" height="220" style="fill:var(--sea)"/><path id="rv" d="M330 335Q480 350 640 338" fill="none" stroke-width="8" style="stroke:var(--sea)"/>
+<g id="tr" fill="#2f7a4a"><circle cx="450" cy="312" r="16"/><circle cx="485" cy="308" r="18"/><circle cx="520" cy="314" r="15"/></g><g id="ct" fill="#6a6f6c"><rect x="545" y="285" width="28" height="45"/><rect x="578" y="270" width="30" height="60"/><rect x="540" y="328" width="95" height="6" fill="#444"/></g>
+<text x="760" y="285">↑ evaporation</text><text x="470" y="270">↑ transpiration</text><text x="230" y="150">condensation</text><text x="300" y="215">↓ precipitation</text><text x="380" y="372">runoff →</text><text x="200" y="400">↓ infiltration</text><text x="60" y="505" style="fill:#fff">groundwater flow →</text><text x="300" y="130">snowmelt ↓</text>
+<rect class="hit" tabindex="0" data-i="cl" x="170" y="60" width="270" height="70"/><rect class="hit" tabindex="0" data-i="ev" x="640" y="300" width="360" height="220"/><rect class="hit" tabindex="0" data-i="tr" x="430" y="285" width="110" height="45"/><rect class="hit" tabindex="0" data-i="ct" x="540" y="265" width="100" height="70"/><rect class="hit" tabindex="0" data-i="gw" x="0" y="430" width="640" height="90"/><rect class="hit" tabindex="0" data-i="snw" x="280" y="140" width="100" height="60"/>`,
+nitrogen:`<rect width="1000" height="260" style="fill:var(--sky)"/><rect y="260" width="700" height="260" style="fill:var(--soil)"/><rect x="700" y="330" width="300" height="190" style="fill:var(--sea)"/><rect x="700" y="260" width="300" height="70" style="fill:var(--land)"/>
+<rect id="alg" x="700" y="326" width="300" height="14" fill="#3ea34a" opacity=".2"/><ellipse id="dz" cx="850" cy="470" rx="120" ry="34" fill="#5a3b28" opacity=".1"/>
+<path d="M120 260V190M120 220q-30-20-40-10M120 205q30-20 40-10" stroke="#2f7a4a" stroke-width="5" fill="none"/><path d="M120 260Q100 320 130 380" stroke="#8a6a44" stroke-width="4" fill="none"/><g id="nod" fill="#e59aa8"><circle cx="108" cy="300" r="10"/><circle cx="118" cy="335" r="10"/><circle cx="128" cy="365" r="9"/></g>
+<rect x="440" y="190" width="80" height="70" fill="#6a6f6c"/><rect x="460" y="150" width="16" height="40" fill="#6a6f6c"/><polygon points="270,20 255,90 275,90 262,140 300,70 280,70 295,20" fill="#f2b84a"/><rect x="580" y="215" width="40" height="45" fill="#6a6f6c"/><rect x="630" y="200" width="40" height="60" fill="#6a6f6c"/><rect x="330" y="240" width="40" height="20" fill="#b48a64"/>
+<rect x="260" y="400" width="40" height="60" id="pnh" fill="#2f9e6b" opacity=".6"/><rect x="330" y="400" width="40" height="60" id="pno" fill="#1f6f8b" opacity=".6"/><line x1="0" x2="700" y1="470" y2="470" stroke="#fff" stroke-dasharray="6 4"/>
+<text x="20" y="410">fixation</text><text x="255" y="395">NH₄⁺ → NO₃⁻ nitrification</text><text x="120" y="190">assimilation</text><text x="380" y="300">ammonification</text><text x="420" y="455">denitrification → N₂ / N₂O</text><text x="310" y="495">↓ leaching</text><text x="705" y="250">runoff →</text><text x="330" y="232">↑ volatilisation (NH₃)</text><text x="438" y="180">Haber–Bosch</text><text x="230" y="30">lightning fixation</text>
+<rect class="hit" tabindex="0" data-i="nod" x="80" y="280" width="80" height="100"/><rect class="hit" tabindex="0" data-i="soil" x="240" y="380" width="160" height="100"/><rect class="hit" tabindex="0" data-i="fac" x="440" y="150" width="80" height="110"/><rect class="hit" tabindex="0" data-i="riv" x="700" y="330" width="300" height="190"/>`,
+carbon:`<rect width="1000" height="140" style="fill:var(--sky)"/><rect id="warm" width="1000" height="140" fill="#d2483f" opacity="0"/><rect y="330" width="1000" height="190" style="fill:var(--soil)"/><rect y="140" width="1000" height="190" style="fill:var(--sky)" opacity=".5"/>
+<rect id="oc" x="0" y="300" width="340" height="220" fill="#2f7fa5"/><g id="coral" fill="#e07a5f"><path d="M40 520v-40l10-10v50zM90 520v-30l10-12v42zM150 520v-45l10-10v55z"/></g>
+<rect x="340" y="330" width="320" height="20" style="fill:var(--land)"/><g id="fr" fill="#2f7a4a"><polygon points="380,330 400,270 420,330"/><polygon points="430,330 455,255 480,330"/><polygon points="490,330 510,280 530,330"/><polygon points="540,330 565,265 590,330"/></g>
+<rect x="680" y="270" width="60" height="60" fill="#6a6f6c"/><rect x="700" y="220" width="14" height="50" fill="#6a6f6c"/><rect x="750" y="290" width="30" height="40" fill="#6a6f6c"/><rect x="790" y="300" width="30" height="30" fill="#6a6f6c"/>
+<rect x="840" y="330" width="160" height="60" fill="#bcd8e4"/><ellipse id="pf" cx="920" cy="360" rx="70" ry="22" fill="#ff7a29" opacity="0"/><rect y="470" width="1000" height="50" style="fill:var(--rock)"/>
+<text x="20" y="25">atmosphere: CO₂ pool</text><text x="400" y="255">photosynthesis ↓</text><text x="400" y="365">respiration / decomposition ↑</text><text x="670" y="210">combustion ↑</text><text x="110" y="290">ocean uptake ↓ / outgassing ↑</text><text x="850" y="320">permafrost release</text><text x="40" y="495" style="fill:#fff">sediment: weathering &amp; fossil carbon</text>
+<rect class="hit" tabindex="0" data-i="fr" x="370" y="250" width="240" height="85"/><rect class="hit" tabindex="0" data-i="fa" x="680" y="215" width="140" height="115"/><rect class="hit" tabindex="0" data-i="oc" x="0" y="300" width="340" height="220"/><rect class="hit" tabindex="0" data-i="pf" x="840" y="330" width="160" height="60"/>`,
+earth:`<g font-family="IBM Plex Sans"><rect x="400" y="30" width="200" height="80" rx="12" style="fill:var(--sky);stroke:var(--line)"/><text x="500" y="76" text-anchor="middle" style="font-size:18px;fill:var(--ink)">☁ Carbon</text>
+<rect x="60" y="360" width="200" height="80" rx="12" style="fill:var(--sky);stroke:var(--line)"/><text x="160" y="406" text-anchor="middle" style="font-size:18px;fill:var(--ink)">💧 Water</text>
+<rect x="740" y="360" width="200" height="80" rx="12" style="fill:var(--sky);stroke:var(--line)"/><text x="840" y="406" text-anchor="middle" style="font-size:18px;fill:var(--ink)">🌱 Nitrogen</text>
+<g fill="none" stroke-linecap="round" style="stroke:var(--accent)"><path id="a0" d="M440 110Q300 230 190 360"/><path id="a1" d="M470 110Q380 260 230 360"/><path id="a2" d="M770 360Q690 240 590 110" /><path id="a3" d="M260 400Q500 330 740 392" /><path id="a4" d="M130 360Q200 200 410 100"/><path id="a5" d="M740 420Q500 470 260 424"/></g>
+<text x="240" y="220">① temp → evap / snow</text><text x="400" y="290">② pH → coral</text><text x="700" y="220">③ N₂O &amp; deposition</text><text x="440" y="368">④ rain → leaching</text><text x="110" y="250">⑤ drought → GPP</text><text x="420" y="480">⑥ nitrate → algae</text></g>`};
+const TIP={water:{cl:m=>["Condensation","vapour → droplets on aerosol nuclei","precip "+pc(m.raw.pr)],ev:m=>["Evaporation","E = k·sun·f(T)·(1−humidity)","evap "+pc(m.raw.ev)],tr:m=>["Transpiration","H₂O leaves stomata","ET "+pc(m.raw.et)],ct:m=>["Runoff","runoff = P·(0.15+0.8·impervious)","runoff "+pc(clamp(m.raw.ro))],gw:m=>["Infiltration → water table","table += infiltration − withdrawal","table "+Math.round(m.raw.table)+"%"],snw:m=>["Snowmelt","melt ∝ ice·max(T,0)","ice "+Math.round(m.raw.ice)+"%"]},
+nitrogen:{nod:m=>["Biological fixation","N₂ + 8H⁺ + 8e⁻ + 16ATP → 2NH₃ + H₂","legume share "+m.raw.leg+"%"],soil:m=>["Nitrification","NH₄⁺ → NO₂⁻ → NO₃⁻","rate "+pc(clamp(m.raw.nit))],fac:m=>["Haber–Bosch","N₂ + 3H₂ → 2NH₃","fertiliser "+m.raw.fert+"%"],riv:m=>["Eutrophication","NO₃⁻ → algae → hypoxia","dead-zone risk "+pc(m.raw.dz)]},
+carbon:{fr:m=>["Photosynthesis","6CO₂ + 6H₂O → C₆H₁₂O₆ + 6O₂","land sink "+m.raw.land.toFixed(1)+" GtC/yr"],fa:m=>["Combustion","CₓHᵧ + O₂ → CO₂ + H₂O","emissions "+m.raw.em.toFixed(1)+" GtC/yr"],oc:m=>["Ocean uptake","CO₂ + H₂O ⇌ H₂CO₃","pH "+m.raw.ph.toFixed(2)],pf:m=>["Permafrost release","R = R₀·e^(k·ΔT)","release "+m.raw.perm.toFixed(2)+" GtC/yr"]}};
+/* ===== PARTICLES ===== */
+const NP=36;let pts=[];const reduce=matchMedia("(prefers-reduced-motion: reduce)").matches;
+function spawn(p){const k=p.k,r=Math.random;
+ if(tab=="water"){if(k==0){p.x=650+r()*330;p.y=320;p.vx=.2;p.vy=-.6;p.c="#9fd0e6"}else if(k==1){p.x=200+r()*260;p.y=125;p.vx=.4;p.vy=3;p.c="#2f6fa5"}else{p.x=0;p.y=0;p.vx=p.vy=0}}
+ else if(tab=="nitrogen"){const o=[["#8a9a96",300+r()*300,380,0,-.7],["#1f6f8b",260+r()*140,420,0,.8],["#d2483f",450+r()*100,440,0,-.5]][k];p.c=o[0];p.x=o[1];p.y=o[2];p.vx=o[3];p.vy=o[4]}
+ else{const o=[["#555",705,215,.1,-1],["#777",380+r()*220,40,0,1.8],["#777",20+r()*300,40,0,1.8]][k];p.c=o[0];p.x=o[1];p.y=o[2];p.vx=o[3];p.vy=o[4]}
+ p.y0=p.y;p.e.setAttribute("fill",p.c)}
+function mkPts(){const g=$("#pg");pts=[];for(let i=0;i<NP;i++){const p={e:el("circle",{r:3},g),k:i%3,i,x:0,y:0,vx:0,vy:0};spawn(p);p.y+=Math.random()*60;pts.push(p)}}
+function frame(){if(M&&M.act&&tab!="earth"){for(const p of pts){const a=M.act[p.k]||0,on=(Math.floor(p.i/3)%10)/10<a;p.e.style.display=on?"":"none";if(!on)continue;p.x+=p.vx;p.y+=p.vy;if(Math.abs(p.y-p.y0)>(tab=="water"&&p.k==0?170:tab=="water"?190:tab=="nitrogen"?90:260)||p.x>1000)spawn(p);p.e.setAttribute("cx",p.x);p.e.setAttribute("cy",p.y)}}requestAnimationFrame(frame)}
+/* ===== UI ===== */
+const A=(id,a,v)=>{const e=$("#"+id);e&&e.setAttribute(a,v)};
+function buildScene(){const s=$("#scene");s.innerHTML=SC[tab]||"";el("g",{id:"pg"},s);const t=$("#tip");
+ s.querySelectorAll("[data-i]").forEach(h=>{const show=ev=>{const f=TIP[tab]&&TIP[tab][h.dataset.i];if(!f||!M)return;const x=f(M),b=h.getBoundingClientRect();t.innerHTML="<b>"+esc(x[0])+"</b><code>"+esc(x[1])+"</code>"+esc(x[2]);t.style.display="block";t.style.left=Math.min(innerWidth-270,(ev.clientX||b.left)+12)+"px";t.style.top=((ev.clientY||b.bottom)+12)+"px"};h.onmousemove=show;h.onfocus=show;h.onmouseleave=h.onblur=()=>t.style.display="none"});
+ if(tab!="earth")mkPts()}
+function buildLeft(){const c=SL[tab]||[];let h='<div class="panel"><h3>Presets</h3><div class="presets">'+Object.keys(PRE[tab]).map(n=>'<button data-p="'+esc(n)+'" class="'+(act[tab]==n?"on":"")+'">'+esc(n)+"</button>").join("")+"</div></div><div class='panel'><h3>Controls</h3>";
+ c.forEach(([k,l,a,b])=>h+='<div class="ctl"><label for="s_'+k+'">'+l+'<b id="v_'+k+'"></b></label><input type="range" id="s_'+k+'" min="'+a+'" max="'+b+'" step="1" data-k="'+k+'"></div>');
+ if(tab=="carbon")h+='<label><input type="checkbox" id="sim"> Simulated CO₂ (Run integrates it)</label>';
+ h+='</div><div class="panel"><h3>Time &amp; events</h3><div class="presets"><button id="run">▶ Run</button><select id="spd" aria-label="Speed"><option>1×</option><option>5×</option><option>20×</option></select><button id="rst">Reset</button><button id="lock">Lock baseline</button></div><p class="limit" id="yr">Year 0 → Year +80</p><svg class="spark" id="spark" viewBox="0 0 300 60"></svg><div class="presets" id="evs" style="margin-top:8px">'+Object.keys(EV).map(k=>'<button data-e="'+k+'">'+EV[k][0]+"</button>").join("")+"</div></div>";
+ $("#left").innerHTML=h;syncCtl();
+ $("#left").onclick=e=>{const b=e.target.closest("button");if(!b)return;if(b.dataset.p)applyPre(b.dataset.p);else if(b.dataset.e)fire(b.dataset.e);else if(b.id=="run")toggleRun();else if(b.id=="rst")applyPre(act[tab]);else if(b.id=="lock"){LK[tab]=M.m.map(x=>x.v);update()}};
+ $("#left").oninput=e=>{const k=e.target.dataset.k;if(k){S[tab][k]=+e.target.value;syncCtl();act[tab]="";document.querySelectorAll("[data-p]").forEach(b=>b.classList.remove("on"));update();hash()}};
+ const sim=$("#sim");if(sim){sim.checked=!!S.carbon.sim;sim.onchange=()=>S.carbon.sim=sim.checked?1:0}
+ $("#spd").onchange=e=>speed=[1,5,20][e.target.selectedIndex]}
+function syncCtl(){(SL[tab]||[]).forEach(([k,l,a,b,u])=>{const v=S[tab][k]=clamp(S[tab][k],a,b),i=$("#s_"+k);if(!i)return;i.value=v;$("#v_"+k).textContent=Math.round(v)+u;i.setAttribute("aria-valuetext",Math.round(v)+(u||" units"))})}
+function applyPre(n){stopRun();Object.assign(S[tab],PRE[tab][n]);if(tab=="earth")Object.assign(S.carbon,{co2:420,cum:0});if(tab=="earth")Object.assign(S.water,{table:60,ice:20}),S.nitrogen.pool=50;act[tab]=n;year=0;hist=[[],[],[]];buildLeft();update();hash()}
+function buildRight(){$("#meters").innerHTML=M.m.map((x,i)=>'<div class="m"><div class="row"><span>'+x.l+'</span><b id="mt'+i+'"></b></div><div class="bar" id="mb'+i+'"><i></i><u></u></div></div>').join("");
+ const C={water:[["Latent heat of vaporisation","Evaporating 1 kg of water absorbs 2.45 MJ, moving solar energy poleward."],["Residence time","Ocean water stays ~3000 yr; atmospheric water only ~9 days."],["Infiltration vs runoff","Soil and plants let rain sink in; pavement sends it to rivers."],["The water table","Top of the saturated zone; rises with recharge, falls with pumping."],["Clausius–Clapeyron","Air holds ~7 % more vapour per °C of warming."]],
+ nitrogen:[["Nitrogenase","Rhizobium reduces N₂ at a cost of 16 ATP per N₂."],["Haber–Bosch","N₂ + 3H₂ → 2NH₃ at high T and pressure."],["Nitrification","NH₄⁺ → NO₂⁻ → NO₃⁻ by aerobic bacteria."],["Denitrification","NO₃⁻ → N₂ (or N₂O) in oxygen-poor soil."],["Nitrogen cascade","One reactive N atom can cause harm in air, soil, water and climate in turn."],["Why N₂ is inert","The triple bond takes 941 kJ/mol to break."]],
+ carbon:[["Fast vs slow cycle","Biosphere and ocean exchange in years; rock cycle takes millions."],["Residence times","Atmospheric CO₂ ~4 yr turnover, but excess persists for centuries."],["Ocean acidification","CO₂ + H₂O ⇌ H₂CO₃ ⇌ H⁺ + HCO₃⁻ lowers pH and carbonate."],["Solubility & biological pumps","Cold water dissolves more CO₂; plankton export carbon to depth."],["Climate sensitivity","About 3 °C per CO₂ doubling at equilibrium."],["Sink saturation","Warmer oceans and stressed forests absorb a smaller share of emissions."]],
+ earth:[["Shared temperature","One warming number feeds all three cycles."],["Feedback","Warming → thaw → more CO₂ → more warming."],["Cascades","Fertiliser shows up as algae and N₂O, not just crops."]]}[tab];
+ $("#cg").innerHTML=C.map(c=>"<div><b>"+c[0]+"</b>"+c[1]+"</div>").join("");buildScene()}
+function update(){M=MODEL[tab]();if(!BASE[tab]){const keep=JSON.stringify(S);BASE[tab]=M}
+ if(!$("#mt0")||$("#meters").children.length!=M.m.length)buildRight();
+ M.m.forEach((x,i)=>{$("#mt"+i).textContent=x.t+(LK[tab]?" Δ"+((x.v-LK[tab][i])*100>=0?"+":"")+Math.round((x.v-LK[tab][i])*100):"");const b=$("#mb"+i);b.className="bar "+status(x.v,x.d);b.firstChild.style.width=pc(clamp(x.v));const u=b.lastChild;u.style.display=LK[tab]?"block":"none";if(LK[tab])u.style.left=pc(LK[tab][i])});
+ $("#fx").innerHTML=(M.fx.length?M.fx:[[0,"",STR.none]]).map(f=>"<li><b>"+f[1]+"</b> "+f[2]+"</li>").join("");
+ $("#lim").textContent=M.lim[0];$("#eq").textContent=M.eq;
+ $("#extra").innerHTML=M.stack?'<div class="stack" title="emissions = atmosphere + land + ocean"><span style="background:var(--bad);width:'+pc(clamp(M.stack[0]/M.stack[3]))+'"></span><span style="background:var(--good);width:'+pc(clamp(M.stack[1]/M.stack[3]))+'"></span><span style="background:var(--accent);width:'+pc(clamp(M.stack[2]/M.stack[3]))+'"></span></div><small>Carbon budget: <b style="color:var(--bad)">residual in air</b> · land sink · ocean sink</small>':"";
+ const r=M.raw;
+ if(tab=="water"){A("sun","opacity",.3+.7*r.sunE);A("sun","r",24+22*r.sunE);const g=Math.round(250-95*clamp(r.pr));$("#cl").setAttribute("fill","rgb("+g+","+g+","+(g+8)+")");A("snw","opacity",r.ice/100);A("tr","opacity",.15+.85*r.veg/100);A("ct","opacity",.1+.9*r.imp/100);const y=520-(30+r.table*1.1);A("gw","y",y);A("gw","height",520-y);A("wt","y1",y);A("wt","y2",y);A("rv","stroke-width",3+14*r.dis)}
+ if(tab=="nitrogen"){A("alg","opacity",.15+.8*r.dz);A("dz","opacity",.1+.7*clamp(r.dz*1.2-.2));A("pnh","height",10+70*clamp(r.sup/1.6));A("pnh","y",470-10-70*clamp(r.sup/1.6));A("pno","height",10+70*r.nit/1.4);A("pno","y",460-70*r.nit/1.4);$("#nod").setAttribute("transform","translate(0,0) scale(1)");A("nod","opacity",.3+.7*r.leg/100)}
+ if(tab=="carbon"){A("warm","opacity",clamp(r.an/10));A("fr","opacity",1-r.defo/130);A("pf","opacity",clamp(r.perm/1.5));A("oc","fill","hsl("+Math.round(200-(8.2-r.ph)*60)+",55%,"+Math.round(38-(8.2-r.ph)*20)+"%)");A("coral","opacity",clamp((r.ph-7.6)/.6))}
+ if(tab=="earth"){M.cp.forEach((v,i)=>A("a"+i,"stroke-width",(1+13*v).toFixed(1)))}
+ $("#yr").textContent="Year "+(year?"+"+year:"0")+" → Year +80";sparkDraw()}
+function sparkDraw(){const s=$("#spark");if(!s)return;s.innerHTML="";hist.forEach((h,i)=>{if(h.length>1)el("polyline",{fill:"none","stroke-width":2,stroke:["#1f6f8b","#d99a1e","#d2483f"][i],points:h.map((v,j)=>(j/Math.max(149,h.length-1)*300).toFixed(1)+","+(58-v*56).toFixed(1)).join(" ")},s)})}
+/* ===== RUN MODE ===== */
+function step(){const m=M;if(tab=="water"||tab=="earth"){const w=tab=="earth"?m.W:m,wd=tab=="earth"?S.earth.wd:S.water.wd;S.water.table=clamp(S.water.table+w.raw.inf*14-wd*.08-S.water.table*.02,0,100);S.water.ice=clamp(S.water.ice+w.raw.snow*25-w.raw.melt*30,0,100)}
+ if(tab=="nitrogen"||tab=="earth"){const n=tab=="earth"?m.N:m;S.nitrogen.pool=clamp(S.nitrogen.pool+n.dpool*6,0,100)}
+ if(tab=="carbon"||tab=="earth"){const c=tab=="earth"?m.C:m;S.carbon.cum+=c.cumAdd;if(S.carbon.sim||tab=="earth")S.carbon.co2=clamp(S.carbon.co2+c.dco2,150,3000)}
+ year++;const ms=M.m;hist.forEach((h,i)=>{h.push(ms[i].v);if(h.length>150)h.shift()})}
+function toggleRun(){if(timer)return stopRun();$("#run").textContent="⏸ Pause";timer=setInterval(()=>{for(let i=0;i<speed&&year<80;i++){step();M=MODEL[tab]()}if(year>=80)stopRun();update();if(tab=="carbon")syncCtl()},450)}
+function stopRun(){clearInterval(timer);timer=null;const b=$("#run");b&&(b.textContent="▶ Run")}
+/* ===== DISTURBANCES ===== */
+const EV={volcano:["🌋 Volcano",()=>{S.water.aer+=50;S.water.T-=2;S.carbon.co2+=10},"Ash and SO₂ aerosols dim sunlight and cool the surface; the plume adds some CO₂."],
+fire:["🔥 Wildfire",()=>{S.carbon.co2+=12;S.nitrogen.pool-=20;S.water.veg-=25;S.carbon.defo+=15},"Burning turns stored carbon into CO₂ and volatilises soil nitrogen, leaving bare ground."],
+monsoon:["🌧️ Monsoon",()=>{S.water.wind=90;S.water.T=Math.max(S.water.T,24);S.water.table+=15},"Hot wet winds raise precipitation, recharging groundwater but raising flood risk."],
+drought:["💧 Drought",()=>{S.water.T+=6;S.water.table-=20;S.water.wind=15},"Heat raises evaporation while still air cuts rain, drying soil and the water table."],
+spike:["🏭 Emissions spike",()=>{S.carbon.emis=100;S.earth.emis=100},"Emissions jump well above what sinks absorb, so the residual accumulates in the air."],
+fert:["🌾 Fertiliser overdose",()=>{S.nitrogen.fert=100;S.earth.fert=100;S.nitrogen.pool+=25},"Crops can't use the surplus, so nitrate leaches and N₂O rises."],
+forest:["🌲 Reforestation",()=>{S.water.veg+=30;S.carbon.defo-=30;S.earth.defo-=30;S.carbon.co2-=5},"New trees draw down CO₂ and slow runoff."]};
+function fire(k){const n=Date.now();if(n-lastEv<1500)return;lastEv=n;EV[k][1]();["water","nitrogen","carbon","earth"].forEach(c=>{for(const x in S[c])if(typeof S[c][x]=="number")S[c][x]=Math.max(0,S[c][x])});S.water.table=Math.min(100,S.water.table);S.nitrogen.pool=Math.min(100,S.nitrogen.pool);syncCtl();update();const t=$("#toast");t.textContent=EV[k][0]+" — "+EV[k][2];t.style.display="block";clearTimeout(t._t);t._t=setTimeout(()=>t.style.display="none",4500)}
+/* ===== QUIZ ===== */
+const R=(a,b)=>Math.round(a+Math.random()*(b-a));
+const QS=[()=>{const a=R(0,10),b=a+12,x=mW({...PRE.water.Today,T:a}).raw.ev,y=mW({...PRE.water.Today,T:b}).raw.ev;return{q:"Temperature rises from "+a+" °C to "+b+" °C, nothing else changes. Evaporation…",o:["Rises","Falls","Barely changes"],a:y>x*1.1?0:y<x*.9?1:2,w:"Model evaporation goes from "+pc(x)+" to "+pc(y)+" because warmer air holds more vapour."}},
+()=>{const x=mW({...PRE.water.Today,imp:10}).raw.ro,y=mW({...PRE.water.Today,imp:75}).raw.ro;return{q:"Impervious surface rises from 10 % to 75 %. Runoff…",o:["Rises","Falls","Unchanged"],a:y>x?0:1,w:"Runoff goes from "+pc(clamp(x))+" to "+pc(clamp(y))+" since pavement blocks infiltration."}},
+()=>{const a=mN({...PRE.nitrogen.Today,fert:40}),b=mN({...PRE.nitrogen.Today,fert:100}),gy=b.raw.up/a.raw.up-1,gl=b.raw.lch/a.raw.lch-1;return{q:"Fertiliser goes 40 % → 100 %. Which rises by the larger percentage?",o:["Crop yield","Nitrate leaching","Both equally"],a:gl>gy?1:0,w:"Yield rises "+Math.round(gy*100)+" % while leaching rises "+Math.round(gl*100)+" %: yield saturates, leaching doesn't."}},
+()=>{const x=mC({...PRE.carbon.Today,co2:280}).raw.gpp,y=mC({...PRE.carbon.Today,co2:840}).raw.gpp,r=y/x;return{q:"CO₂ triples (280 → 840 ppm), water unchanged. Photosynthesis…",o:["Triples","Rises by less than 1.5×","Rises 1.5–2.5×"],a:r>2.5?0:r<1.5?1:2,w:"Model photosynthesis rises "+r.toFixed(2)+"× — it saturates because other factors then limit it."}},
+()=>{const x=mC({...PRE.carbon.Today,sst:5}).raw.oc,y=mC({...PRE.carbon.Today,sst:25}).raw.oc;return{q:"Ocean warms from 5 °C to 25 °C. The ocean CO₂ sink…",o:["Strengthens","Weakens","Unchanged"],a:y<x?1:0,w:"Sink goes from "+x.toFixed(1)+" to "+y.toFixed(1)+" GtC/yr as warm water dissolves less CO₂."}}];
+let qi=0,sc=0;
+function quiz(){const best=(()=>{try{return localStorage.getItem("qbest")||0}catch(e){return 0}})();const d=$("#quiz");
+ if(qi>=QS.length){try{if(sc>best)localStorage.setItem("qbest",sc)}catch(e){}d.innerHTML="<h3>Quiz</h3><p>Score "+sc+" / "+QS.length+" · best "+Math.max(sc,best)+"</p><button id='qr'>Restart</button>";$("#qr").onclick=()=>{qi=0;sc=0;qs=null;quiz()};return}
+ if(!qs)qs=QS.map(f=>f());const q=qs[qi];d.innerHTML="<h3>Question "+(qi+1)+" of "+QS.length+" · best "+best+"</h3><div class='bar'><i style='width:"+pc(qi/QS.length)+"'></i></div><p><b>"+esc(q.q)+"</b></p>"+q.o.map((o,i)=>"<button data-a='"+i+"'>"+esc(o)+"</button>").join("")+"<p id='qf' aria-live='polite'></p>";
+ d.onclick=e=>{const b=e.target.closest("[data-a]");if(!b||d.dataset.done==qi)return;d.dataset.done=qi;const ok=+b.dataset.a==q.a;if(ok)sc++;$("#qf").innerHTML=(ok?"✅ Correct. ":"❌ Not quite. ")+esc(q.w)+" <button id='qn'>Next</button>";$("#qn").onclick=()=>{qi++;quiz()}}};
+let qs=null;
+/* ===== TABS, HASH, EXPORT ===== */
+function hash(){if(!SL[tab])return;history.replaceState(null,"","#cycle="+tab+SL[tab].map(s=>"&"+s[0]+"="+Math.round(S[tab][s[0]])).join(""))}
+function setTab(t){stopRun();tab=t;document.querySelectorAll("#tabs button").forEach(b=>b.setAttribute("aria-selected",b.dataset.t==t));const q=t=="quiz";$("#main").hidden=q;$("#conc").hidden=q;$("#quizsec").hidden=!q;if(q){qi=0;sc=0;qs=null;quiz();return}hist=[[],[],[]];year=0;buildLeft();M=MODEL[tab]();buildRight();update();hash()}
+function copy(t){try{navigator.clipboard.writeText(t)}catch(e){const a=document.createElement("textarea");a.value=t;document.body.appendChild(a);a.select();document.execCommand("copy");a.remove()}}
+function init(){$("#ttl").textContent=STR.ttl;$("#sub").textContent=STR.sub;
+ $("#tabs").innerHTML=Object.keys(NAME).map(k=>'<button role="tab" data-t="'+k+'" aria-selected="false">'+NAME[k]+"</button>").join("");
+ $("#tabs").onclick=e=>{const b=e.target.closest("[data-t]");b&&setTab(b.dataset.t)};
+ $("#tabs").onkeydown=e=>{const k=Object.keys(NAME),i=k.indexOf(tab);if(e.key=="ArrowRight"||e.key=="ArrowLeft"){setTab(k[(i+(e.key=="ArrowRight"?1:k.length-1))%k.length]);$("#tabs [aria-selected=true]").focus()}};
+ try{if(localStorage.getItem("theme")=="dark")document.documentElement.dataset.theme="dark"}catch(e){}
+ $("#dark").onclick=()=>{const d=document.documentElement.dataset.theme=="dark";document.documentElement.dataset.theme=d?"":"dark";try{localStorage.setItem("theme",d?"light":"dark")}catch(e){}};
+ $("#lnk").onclick=()=>copy(location.href);
+ $("#sum").onclick=()=>M&&copy(NAME[tab]+" — "+M.m.map(x=>x.l+": "+x.t).join("; ")+". "+M.eq);
+ $("#csv").onclick=()=>{if(!M)return;const r=M.raw,a=document.createElement("a");a.href=URL.createObjectURL(new Blob([Object.keys(r).join(",")+"\n"+Object.values(r).join(",")],{type:"text/csv"}));a.download=tab+".csv";a.click()};
+ const h=new URLSearchParams(location.hash.slice(1)),c=h.get("cycle");
+ if(c&&SL[c])for(const[k,v]of h)if(k in S[c]&&!isNaN(+v))S[c][k]=+v;
+ for(const k in MODEL){const keep=tab;tab=k;BASE[k]=MODEL[k]();tab=keep}
+ setTab(c&&SL[c]?c:"water");if(!reduce)requestAnimationFrame(frame)}
+init();
+})();
+</script></body></html>
